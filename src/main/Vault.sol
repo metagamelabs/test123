@@ -21,6 +21,7 @@ contract Vault is ReentrancyGuard {
     uint64 public lastSyncBlockNumber;
 
     event Staked(address indexed _staker, uint256 _amount, uint256 _actualAmount, uint256 _totalStakedAmount);
+    event Debug(string text);
 
     constructor(
         address _cardTokenAddr
