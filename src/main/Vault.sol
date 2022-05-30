@@ -16,9 +16,11 @@ contract Vault is ReentrancyGuard {
 
     mapping(address => User) public users;
 
-    address public immutable cartTokenAddr;
+    address public immutable cardTokenAddr;
 
     uint64 public lastSyncBlockNumber;
+
+    event Staked(address indexed _staker, uint256 _amount, uint256 _actualAmount, uint256 _totalStakedAmount);
 
     constructor(
         address _cardTokenAddr
@@ -27,7 +29,7 @@ contract Vault is ReentrancyGuard {
         require(_cardTokenAddr != address(0), "_cardTokenAddr not set");
 
         // save the inputs into internal state variables
-        cartTokenAddr = _cardTokenAddr;
+        cardTokenAddr = _cardTokenAddr;
     }
 
     function _sync() private {
