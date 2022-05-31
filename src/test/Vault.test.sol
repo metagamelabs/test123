@@ -38,10 +38,16 @@ contract VaultTest is BaseTest {
         assertEq(cardToken.balanceOf(userAddr), 1);
         assertEq(cardToken.balanceOf(address(vault)), 9);
 
-        // unstake tokens
+        // unstake tokens (twice, from original staker and another addr)
+        vm.prank(userAddr);
+        vault.unstake(userAddr, 5);
+        // This will be run using some other address (prank wears off)
+        vault.unstake(userAddr, 4);
+        assertEq(cardToken.balanceOf(userAddr), 10);
+        assertEq(cardToken.balanceOf(address(vault)), 0);
 	}
 
-    function testStakeMoreThanBalance() public {
+    function testStakeUnstakeMoreThanBalanceReverts() public {
         address userAddr = address(accounts.PUBLIC_KEYS(0));
 		console.log("user addr:", userAddr);
 
@@ -60,5 +66,19 @@ contract VaultTest is BaseTest {
         vm.prank(userAddr);
         vm.expectRevert(ERC20_INVALID_BALANCE);
         vault.stake(11);
+
+        // stake 10 CARD, so that we can try and unstake more than amount staked
+        vm.prank(userAddr);
+        vault.stake(10);
+        bytes memory expectedError = "requires input _amount <= user.stakedAmount";
+        vm.expectRevert(expectedError);
+        vault.unstake(userAddr, 11);
+    }
+
+    function testUnstakeNonUserReverts() public {
+        address userAddr = address(accounts.PUBLIC_KEYS(0));
+        bytes memory expectedError = "no staked balance to unstake";
+        vm.expectRevert(expectedError);
+        vault.unstake(userAddr, 10);
     }
 }

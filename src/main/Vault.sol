@@ -20,8 +20,9 @@ contract Vault is ReentrancyGuard {
 
     uint64 public lastSyncBlockNumber;
 
-    event Staked(address indexed _staker, uint256 _amount, uint256 _actualAmount, uint256 _totalStakedAmount);
+    event Staked(address indexed _staker, uint256 _amount, uint256 _actualAmount, uint256 _newStakedAmount);
     event Debug(string text);
+    event Unstaked(address _requestedBy, address indexed _staker, uint256 _amount, uint256 _newStakedAmount);
 
     constructor(
         address _cardTokenAddr
@@ -72,13 +73,27 @@ contract Vault is ReentrancyGuard {
     }
 
 
-    function _unstake(
-        address _staker,
-        uint256 _depositId,
-        uint256 _amount,
-        bool _useSILV
-    ) internal virtual  {
+    function unstake(
+        address _stakerAddr,
+        uint256 _amount
+    ) external  {
+        require(_amount > 0, "requires amount > 0");
 
+        User storage user = users[_stakerAddr];
+
+        require(user.stakedAmount > 0, "no staked balance to unstake");
+        require(user.lockedAtTimestamp <= 0, "can't unstake if you have locked");
+
+        require(_amount <= user.stakedAmount, "requires input _amount <= user.stakedAmount");
+        SafeERC20.safeTransfer(IERC20(cardTokenAddr), _stakerAddr, _amount);
+
+        user.stakedAmount -= _amount;
+
+        emit Unstaked(msg.sender, _stakerAddr, _amount, user.stakedAmount);
+    }
+
+    function lock() external {
+        
     }
 
     function claimUnlockedTokens() public {
