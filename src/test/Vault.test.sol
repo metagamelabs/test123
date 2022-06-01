@@ -49,7 +49,6 @@ contract VaultTest is BaseTest {
 
     function testStakeUnstakeMoreThanBalanceReverts() public {
         address userAddr = address(accounts.PUBLIC_KEYS(0));
-		console.log("user addr:", userAddr);
 
         // assert starting balance is 0
         assertEq(cardToken.balanceOf(userAddr),0);
@@ -80,5 +79,83 @@ contract VaultTest is BaseTest {
         bytes memory expectedError = "no staked balance to unstake";
         vm.expectRevert(expectedError);
         vault.unstake(userAddr, 10);
+    }
+
+    function testLockingAndImmediateClaim() public {
+        address userAddr = address(accounts.PUBLIC_KEYS(0));
+
+        // assert starting balance is 0
+        assertEq(cardToken.balanceOf(userAddr),0);
+
+        // mint 10 CARD tokens to user
+        cardToken.mint(userAddr, 10);
+        assertEq(cardToken.balanceOf(userAddr),10);
+
+        // approve vault to spend userAddr tokens
+        vm.prank(userAddr);
+        cardToken.approve(address(vault), 100000);
+
+        // lock 10 tokens
+        vm.prank(userAddr);
+        vault.lock(10);
+
+        // assert user balance is 0, and vault is 10
+        assertEq(cardToken.balanceOf(userAddr),0);
+        assertEq(cardToken.balanceOf(address(vault)), 10);
+
+        // try claiming tokens, expect 0 tokens claimed
+        vm.prank(userAddr);
+        vault.claimUnlockedTokens();
+        assertEq(cardToken.balanceOf(userAddr),0);
+        assertEq(cardToken.balanceOf(address(vault)), 10);
+    }
+
+    function testLockMoreThanBalanceReverts() public {
+        address userAddr = address(accounts.PUBLIC_KEYS(0));
+
+        // assert starting balance is 0
+        assertEq(cardToken.balanceOf(userAddr),0);
+
+        // mint 10 CARD tokens to user
+        cardToken.mint(userAddr, 10);
+        assertEq(cardToken.balanceOf(userAddr),10);
+
+        // approve vault to spend userAddr tokens
+        vm.prank(userAddr);
+        cardToken.approve(address(vault), 100000);
+
+        // try to lock 11 CARD
+        vm.prank(userAddr);
+        vm.expectRevert(ERC20_INVALID_BALANCE);
+        vault.lock(11);
+    }
+
+    function testBlackListedCantLock() public {
+        address userAddr = address(accounts.PUBLIC_KEYS(0));
+
+        // assert starting balance of user and vault is 0
+        assertEq(cardToken.balanceOf(userAddr),0);
+        assertEq(cardToken.balanceOf(address(vault)), 0);
+
+        // mint 10 CARD tokens to user
+        cardToken.mint(userAddr, 10);
+        assertEq(cardToken.balanceOf(userAddr),10);
+
+        // approve vault to spend userAddr tokens
+        vm.prank(userAddr);
+        cardToken.approve(address(vault), 100000);
+
+        // add user to blacklist
+        vault.addToBlacklist(userAddr);
+        // try to lock tokens, expect error
+        bytes memory expectedError = "blacklisted wallet";
+        vm.expectRevert(expectedError);
+        vm.prank(userAddr);
+        vault.lock(10);
+
+        // remove from blacklist and try locking
+        vault.removeFromBlacklist(userAddr);
+        vm.prank(userAddr);
+        vault.lock(10);
     }
 }

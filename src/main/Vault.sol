@@ -3,9 +3,10 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 
-contract Vault is ReentrancyGuard {
+contract Vault is ReentrancyGuard, Ownable {
 
     struct UserTokenLock {
         uint256 lockedAmount;
@@ -18,6 +19,8 @@ contract Vault is ReentrancyGuard {
     mapping(address => uint256) public userStakeAmountMap;
 
     address public immutable cardTokenAddr;
+
+    mapping (address => bool) public walletBlacklist;
 
     uint64 public lastSyncBlockNumber;
 
@@ -37,6 +40,7 @@ contract Vault is ReentrancyGuard {
         cardTokenAddr = _cardTokenAddr;
     }
 
+    // TODO remove?
     function _sync() private {
 
         uint256 currentBlock = blockNumber();
@@ -50,6 +54,15 @@ contract Vault is ReentrancyGuard {
         // uint256 blocksElapsed = currentBlock - lastSyncBlockNumber;
 
         lastSyncBlockNumber = uint64(currentBlock);
+    }
+
+
+    function addToBlacklist(address badAddr) external onlyOwner {
+        walletBlacklist[badAddr] = true;
+    }
+
+    function removeFromBlacklist(address addr) external onlyOwner {
+        walletBlacklist[addr] = false;
     }
 
     function stake(
@@ -88,6 +101,8 @@ contract Vault is ReentrancyGuard {
     }
 
     function lock(uint256 _amount) external {
+        require(!walletBlacklist[msg.sender], "blacklisted wallet");
+
         UserTokenLock storage utl = userTokenLocks[msg.sender];
 
         require(utl.lockedAtTimestamp <= 0 && utl.lockedAmount == 0, "user already has locked balance");
@@ -113,6 +128,10 @@ contract Vault is ReentrancyGuard {
         uint256 timeElapsed = now256() - utl.lockedAtTimestamp;
         uint monthsElapsed = timeElapsed / 30 days;
         uint newClaimAmount;
+        if (monthsElapsed == 0) {
+            // no tokens unlocked...
+            return;
+        }
         if (monthsElapsed >= 12) {
             // unlock all tokens and transfer out
             // TODO also test wjat jap[[emns when i call claim twice for this block of code
