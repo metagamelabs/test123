@@ -24,8 +24,10 @@ contract Vault is ReentrancyGuard, Ownable {
 
     uint64 public lastSyncBlockNumber;
 
+    bool isPanic;
+
     event Staked(address indexed _staker, uint256 _amount, uint256 _actualAmount, uint256 _newStakedAmount);
-    event Debug(string text);
+    event Debug(string text, uint a, uint b);
     event Unstaked(address _requestedBy, address indexed _staker, uint256 _amount, uint256 _newStakedAmount);
     event Locked(address _locker, uint256 _amount, uint256 _actualAmount);
     event ClaimedUnlocked(address _claimer, uint256 _amount, uint monthsElapsed, uint256 _totalClaimed);
@@ -123,21 +125,19 @@ contract Vault is ReentrancyGuard, Ownable {
 
         require(utl.lockedAmount > 0, "no locked tokens");
 
-
         // determine months since initial lock
         uint256 timeElapsed = now256() - utl.lockedAtTimestamp;
         uint monthsElapsed = timeElapsed / 30 days;
         uint newClaimAmount;
-        if (monthsElapsed == 0) {
-            // no tokens unlocked...
-            return;
-        }
-        if (monthsElapsed >= 12) {
-            // unlock all tokens and transfer out
+        if (monthsElapsed >= 12 || isPanic) {
+            // unlock all tokens
             // TODO also test wjat jap[[emns when i call claim twice for this block of code
             newClaimAmount = utl.lockedAmount - utl.claimedAmount;
+        } else if (monthsElapsed == 0) {
+            // no tokens to claim;
+            return;
         } else {
-            uint totalUnlockedTokens = utl.lockedAmount / monthsElapsed * 12;
+            uint totalUnlockedTokens = utl.lockedAmount * monthsElapsed / 12;
             newClaimAmount = totalUnlockedTokens - utl.claimedAmount;
         }
         SafeERC20.safeTransfer(IERC20(cardTokenAddr), msg.sender, newClaimAmount);
@@ -145,6 +145,15 @@ contract Vault is ReentrancyGuard, Ownable {
         utl.claimedAmount += newClaimAmount;
 
         emit ClaimedUnlocked(msg.sender, newClaimAmount, monthsElapsed, utl.claimedAmount);
+
+        if (utl.lockedAmount == utl.claimedAmount) {
+            // delete this lock so that the user can start a new lock in the future
+            delete userTokenLocks[msg.sender];
+        }
+    }
+
+    function setPanic(bool _isPanic) external onlyOwner {
+        isPanic = _isPanic;
     }
 
 
