@@ -24,7 +24,7 @@ https://etherscan.io/address/0x8b4d8443a0229349a9892d4f7cbe89ef5f843f72#code
 
 
 # Assumptions
-- User can't add more to the stake. Initial stake is done and lasts for one year.
+- User can't add more to the lock. Initial lock lasts for one year. After lock is done, it is removed and a new lock can begin.
 - Stake time is 1 year
 - stake/unstake and lock are separate. staking doesn't require locking.
 - Card feature is not related to the staking. 
