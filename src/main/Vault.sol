@@ -42,23 +42,6 @@ contract Vault is ReentrancyGuard, Ownable {
         cardTokenAddr = _cardTokenAddr;
     }
 
-    // TODO remove?
-    function _sync() private {
-
-        uint256 currentBlock = blockNumber();
-        if (currentBlock <= lastSyncBlockNumber) {
-            // if already synced, return silently
-            return;
-        }
-
-        // update rewards in Users
-        // determine how many blocks have passed since last block
-        // uint256 blocksElapsed = currentBlock - lastSyncBlockNumber;
-
-        lastSyncBlockNumber = uint64(currentBlock);
-    }
-
-
     function addToBlacklist(address badAddr) external onlyOwner {
         walletBlacklist[badAddr] = true;
     }
