@@ -55,9 +55,6 @@ contract Vault is ReentrancyGuard, Ownable {
     ) external {
         require(_amount > 0, "requires amount > 0");
 
-        // sync state
-        _sync();
-
         uint256 prevVaultTokenBalance = IERC20(cardTokenAddr).balanceOf(address(this));
         SafeERC20.safeTransferFrom(IERC20(cardTokenAddr), address(msg.sender), address(this), _amount);
         uint256 newVaultTokenBalance = IERC20(cardTokenAddr).balanceOf(address(this));

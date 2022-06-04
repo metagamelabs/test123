@@ -7,6 +7,9 @@ import "@nomiclabs/hardhat-etherscan"
 import "@nomiclabs/hardhat-waffle"
 import "@typechain/hardhat"
 import "@openzeppelin/hardhat-upgrades"
+import "hardhat-preprocessor"
+
+import fs from "fs"
 
 subtask(TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS).setAction(
 	async (_, __, runSuper) => {
@@ -53,6 +56,29 @@ const config: HardhatUserConfig = {
 		cache: "./hardhat/cache",
 		artifacts: "./hardhat/artifacts",
 	},
+	preprocess: {
+		eachLine: (hre) => ({
+			transform: (line: string) => {
+				if (line.match(/^\s*import /i)) {
+					getRemappings().forEach(([find, replace]) => {
+						if (line.match('"' + find)) {
+							line = line.replace('"' + find, '"' + replace);
+						}
+					});
+				}
+				return line;
+			},
+		}),
+	},
+}
+
+// Hardhat Compatibility instructions from https://book.getfoundry.sh/config/hardhat.html
+function getRemappings() {
+	return fs
+		.readFileSync("remappings.txt", "utf8")
+		.split("\n")
+		.filter(Boolean) // remove empty lines
+		.map((line) => line.trim().split("="));
 }
 
 export default config

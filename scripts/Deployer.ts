@@ -14,10 +14,13 @@ export class Deployer {
 	async run() {
 		await this.helper.initHelper()
 
-		const Contract = await ethers.getContractFactory("Contract")
-		const contract = await this.helper.deployContract(
-			Contract,
-			"DefaultContract"
+		const CardToken = await ethers.getContractFactory("CardToken")
+		const cardTokenContract = await this.helper.deployContract(
+			CardToken,
+			"CardToken"
 		)
+
+		const Vault = await ethers.getContractFactory("Vault")
+		const vaultContract = await this.helper.deployContract(Vault, "Vault", cardTokenContract.address);
 	}
 }
