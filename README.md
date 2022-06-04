@@ -1,7 +1,9 @@
 This uses a solidity-foundry-hardhat starting template from https://github.com/0xAtum/template-solidity-project
 
 To run tests: `make test`
+
 To start a local node: `npx hardhat node`
+
 To run on local node: `make deploy-local` 
 
 
